@@ -68,16 +68,10 @@ val myJson: Json = JsonObject(
 
 data class Person(val name: String, val hobbies: List<String>)
 
-val name: (Json?) -> String? =
-    maybe(string)
-
-val hobbies: (Json?) -> List<String>? =
-    maybe(listOf(string))
-
 val person: OParser<Person?> =
     liftOParser(liftOption(::Person))(
-        field("name", name),
-        field("hobbies", hobbies)
+        field("name", maybe(string)),
+        field("hobbies", maybe(listOf(string)))
     )
 
 val parser: Parser<Person?> =
