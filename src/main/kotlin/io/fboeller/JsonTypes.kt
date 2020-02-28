@@ -20,16 +20,16 @@ fun <T> fold(fo: (JsonObject) -> T, fl: (JsonList) -> T, fp: (JsonPrimitive) -> 
     }
 }
 
-fun <T> expectList(parse: LParser<T>): Parser<T> =
+fun <T> list(parse: LParser<T>): Parser<T> =
     fold({ fail() }, parse, { fail() })
 
-fun <T> expectObject(parse: OParser<T>): Parser<T> =
+fun <T> obj(parse: OParser<T>): Parser<T> =
     fold(parse, { fail() }, { fail() })
 
-fun <T> expectString(parse: PParser<T>): Parser<T> =
+fun <T> string(parse: PParser<T>): Parser<T> =
     fold({ fail() }, { fail() }, parse)
 
-fun <T> expectField(field: String, parse: (Json?) -> T): OParser<T> = { json ->
+fun <T> field(field: String, parse: (Json?) -> T): OParser<T> = { json ->
     parse(json.fields[field])
 }
 
@@ -61,21 +61,21 @@ val myJson: Json = JsonObject(
 
 data class Person(val name: String, val hobbies: List<String>)
 
-val parseName: (Json?) -> String? =
-    maybe(expectString(JsonPrimitive::value))
+val name: (Json?) -> String? =
+    maybe(string(JsonPrimitive::value))
 
-val parseHobbies: (Json?) -> List<String>? =
-    maybe(expectList { list -> list.elements.map(expectString(JsonPrimitive::value)) })
+val hobbies: (Json?) -> List<String>? =
+    maybe(list { list -> list.elements.map(string(JsonPrimitive::value)) })
 
-val parsePerson: OParser<Person?> =
+val person: OParser<Person?> =
     liftOParser(liftOption(::Person))(
-        expectField("name", parseName),
-        expectField("hobbies", parseHobbies)
+        field("name", name),
+        field("hobbies", hobbies)
     )
 
-val parseJson: Parser<Person?> =
-    expectObject(parsePerson)
+val parser: Parser<Person?> =
+    obj(person)
 
 fun main() {
-    println(parseJson(myJson))
+    println(parser(myJson))
 }
