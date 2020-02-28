@@ -30,8 +30,8 @@ class ParserDSLSafe {
         fun <T> string(parse: FalliblePParser<T>): FallibleParser<T> =
             fold(fail("Expected string but found object!"), fail("Expected string but found list!"), parse)
 
-        fun <T> field(field: String, parse: (Json?) -> Fallible<T>): FallibleOParser<T> = { json ->
-            parse(json.fields[field])
+        fun <T> field(field: String, parse: (Json) -> Fallible<T>): FallibleOParser<T?> = { json ->
+            sequence(json.fields[field]?.let(parse))
         }
 
 
@@ -61,8 +61,11 @@ class ParserDSLSafe {
         fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R): (FallibleOParser<T1>, FallibleOParser<T2>) -> FallibleOParser<R> =
             liftOParser(liftFallible(f))
 
-        fun <T, R> mandatory(f: (T) -> Fallible<R>): (T?) -> Fallible<R> =
-            { t -> t?.let(f) ?: Failure(listOf("Expected mandatory field but found nothing!")) }
+        fun <T> mandatory(parse: FallibleOParser<T?>): FallibleOParser<T> = { json ->
+            parse(json).flatMap<T?, T> { t ->
+                t?.let { Success(it) } ?: Failure(listOf("Expected mandatory field but found nothing!"))
+            }
+        }
 
     }
 

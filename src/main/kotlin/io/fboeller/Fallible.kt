@@ -25,3 +25,13 @@ fun <T> merge(fallible1: Fallible<List<T>>, fallible2: Fallible<List<T>>): Falli
 
 fun <T> sequence(fallibles: List<Fallible<T>>): Fallible<List<T>> =
     fallibles.fold(Success(listOf()), { acc, fallible -> merge(acc, fallible.map { listOf(it) }) })
+
+fun <T> sequenceO(fallible: Fallible<T?>): Fallible<T>? = when(fallible) {
+    is Success -> fallible.t?.let { Success(it) }
+    is Failure -> Failure(fallible.reasons)
+}
+
+fun <T> sequence(maybe: Fallible<T>?): Fallible<T?> = when(maybe) {
+    null -> Success(null)
+    else -> maybe.map { it }
+}
