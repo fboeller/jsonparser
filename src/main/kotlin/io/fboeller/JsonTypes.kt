@@ -36,6 +36,9 @@ fun <T> field(field: String, parse: (Json?) -> T): OParser<T> = { json ->
 
 val string: Parser<String> = string(JsonPrimitive::value)
 
+fun <T> listOf(parse: Parser<T>): Parser<List<T>> =
+    list { list -> list.elements.map(parse) }
+
 
 fun <T1, T2, R> liftOption(f: (T1, T2) -> R): (T1?, T2?) -> R? = { t1, t2 ->
     t1?.let { s1 -> t2?.let { s2 -> f(s1, s2) } }
@@ -69,7 +72,7 @@ val name: (Json?) -> String? =
     maybe(string)
 
 val hobbies: (Json?) -> List<String>? =
-    maybe(list { list -> list.elements.map(string) })
+    maybe(listOf(string))
 
 val person: OParser<Person?> =
     liftOParser(liftOption(::Person))(
