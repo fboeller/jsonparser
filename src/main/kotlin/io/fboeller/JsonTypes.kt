@@ -17,14 +17,14 @@ fun <T> fold(fo: (JsonObject) -> T, fl: (JsonList) -> T, fp: (JsonPrimitive) -> 
     }
 }
 
-fun <T> Json.expectList(parse: (JsonList) -> T): T =
-    fold({ fail() }, parse, { fail() })(this)
+fun <T> expectList(parse: (JsonList) -> T): Parser<T> =
+    fold({ fail() }, parse, { fail() })
 
-fun <T> Json.expectObject(parse: (JsonObject) -> T): T =
-    fold(parse, { fail() }, { fail() })(this)
+fun <T> expectObject(parse: (JsonObject) -> T): Parser<T> =
+    fold(parse, { fail() }, { fail() })
 
-fun <T> Json.expectString(parse: (JsonPrimitive) -> T): T =
-    fold({ fail() }, { fail() }, parse)(this)
+fun <T> expectString(parse: (JsonPrimitive) -> T): Parser<T> =
+    fold({ fail() }, { fail() }, parse)
 
 fun <T> JsonObject.expectField(field: String, parse: (Json?) -> T): T =
     parse(this.fields[field])
@@ -44,8 +44,8 @@ data class Person(val name: String, val hobbies: List<String>)
 
 fun fail(): Nothing = throw RuntimeException()
 
-fun parseJson(json: Json) =
-    json.expectObject(::parsePerson)
+fun parseJson(json: Json): Person? =
+    expectObject(::parsePerson)(json)
 
 fun parsePerson(o: JsonObject): Person? =
     lift(::Person)(
@@ -54,10 +54,10 @@ fun parsePerson(o: JsonObject): Person? =
     )
 
 fun parseName(maybeJson: Json?): String? =
-    maybeJson?.expectString(JsonPrimitive::value)
+    maybeJson?.let(expectString(JsonPrimitive::value))
 
 fun parseHobbies(maybeJson: Json?): List<String>? =
-    maybeJson?.let { json -> json.expectList { list -> list.elements.map { json -> json.expectString(JsonPrimitive::value) } } }
+    maybeJson?.let(expectList { list -> list.elements.map(expectString(JsonPrimitive::value)) })
 
 fun main() {
     println(parseJson(myJson))
