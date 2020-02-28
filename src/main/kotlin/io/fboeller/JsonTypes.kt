@@ -52,11 +52,13 @@ fun <T1, T2, R> liftOParser(f: (T1, T2) -> R): (OParser<T1>, OParser<T2>) -> OPa
     { json -> f(p1(json), p2(json)) }
 }
 
+fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R): (OParser<T1?>, OParser<T2?>) -> OParser<R?> =
+    liftOParser(liftOption(f))
+
 fun <T, R> maybe(f: (T) -> R): (T?) -> R? =
     { it?.let(f) }
 
 fun fail(): Nothing = throw RuntimeException()
-
 
 
 val myJson: Json = JsonObject(
@@ -68,15 +70,13 @@ val myJson: Json = JsonObject(
 
 data class Person(val name: String, val hobbies: List<String>)
 
-val person: OParser<Person?> =
-    liftOParser(liftOption(::Person))(
+val personOf: Parser<Person?> = obj(
+    fieldsOf(::Person)(
         field("name", maybe(string)),
         field("hobbies", maybe(listOf(string)))
     )
-
-val parser: Parser<Person?> =
-    obj(person)
+)
 
 fun main() {
-    println(parser(myJson))
+    println(personOf(myJson))
 }
