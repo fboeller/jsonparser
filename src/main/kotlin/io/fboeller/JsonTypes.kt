@@ -8,6 +8,7 @@ data class JsonList(val elements: List<Json>) : Json()
 data class JsonPrimitive(val value: String) : Json()
 
 typealias Parser<T> = (Json) -> T
+typealias OParser<T> = (JsonObject) -> T
 
 fun <T> fold(fo: (JsonObject) -> T, fl: (JsonList) -> T, fp: (JsonPrimitive) -> T): Parser<T> = { json ->
     when (json) {
@@ -26,8 +27,9 @@ fun <T> expectObject(parse: (JsonObject) -> T): Parser<T> =
 fun <T> expectString(parse: (JsonPrimitive) -> T): Parser<T> =
     fold({ fail() }, { fail() }, parse)
 
-fun <T> JsonObject.expectField(field: String, parse: (Json?) -> T): T =
-    parse(this.fields[field])
+fun <T> expectField(field: String, parse: (Json?) -> T): OParser<T> = { json ->
+    parse(json.fields[field])
+}
 
 fun <T1, T2, R> lift(f: (T1, T2) -> R): (T1?, T2?) -> R? = { t1, t2 ->
     t1?.let { s1 -> t2?.let { s2 -> f(s1, s2) } }
@@ -49,8 +51,8 @@ fun parseJson(json: Json): Person? =
 
 fun parsePerson(o: JsonObject): Person? =
     lift(::Person)(
-        o.expectField("name", ::parseName),
-        o.expectField("hobbies", ::parseHobbies)
+        expectField("name", ::parseName)(o),
+        expectField("hobbies", ::parseHobbies)(o)
     )
 
 fun parseName(maybeJson: Json?): String? =
