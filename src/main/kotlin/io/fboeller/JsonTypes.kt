@@ -45,6 +45,13 @@ fun <T1, T2, R> liftOParser(f: (T1, T2) -> R): (OParser<T1>, OParser<T2>) -> OPa
     { json -> f(p1(json), p2(json)) }
 }
 
+fun <T, R> maybe(f: (T) -> R): (T?) -> R? =
+    { it?.let(f) }
+
+fun fail(): Nothing = throw RuntimeException()
+
+
+
 val myJson: Json = JsonObject(
     mapOf(
         "name" to JsonPrimitive("b"),
@@ -54,22 +61,20 @@ val myJson: Json = JsonObject(
 
 data class Person(val name: String, val hobbies: List<String>)
 
-fun fail(): Nothing = throw RuntimeException()
+val parseName: (Json?) -> String? =
+    maybe(expectString(JsonPrimitive::value))
+
+val parseHobbies: (Json?) -> List<String>? =
+    maybe(expectList { list -> list.elements.map(expectString(JsonPrimitive::value)) })
 
 val parsePerson: OParser<Person?> =
     liftOParser(liftOption(::Person))(
-        expectField("name", ::parseName),
-        expectField("hobbies", ::parseHobbies)
+        expectField("name", parseName),
+        expectField("hobbies", parseHobbies)
     )
 
 val parseJson: Parser<Person?> =
     expectObject(parsePerson)
-
-fun parseName(maybeJson: Json?): String? =
-    maybeJson?.let(expectString(JsonPrimitive::value))
-
-fun parseHobbies(maybeJson: Json?): List<String>? =
-    maybeJson?.let(expectList { list -> list.elements.map(expectString(JsonPrimitive::value)) })
 
 fun main() {
     println(parseJson(myJson))
