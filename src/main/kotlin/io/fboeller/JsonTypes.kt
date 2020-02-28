@@ -59,24 +59,3 @@ fun <T, R> maybe(f: (T) -> R): (T?) -> R? =
     { it?.let(f) }
 
 fun fail(): Nothing = throw RuntimeException()
-
-
-val myJson: Json = JsonObject(
-    mapOf(
-        "name" to JsonPrimitive("b"),
-        "hobbies" to JsonList(listOf(JsonPrimitive("d")))
-    )
-)
-
-data class Person(val name: String, val hobbies: List<String>)
-
-val personOf: Parser<Person?> = obj(
-    fieldsOf(::Person)(
-        field("name", maybe(string)),
-        field("hobbies", maybe(listOf(string)))
-    )
-)
-
-fun main() {
-    println(personOf(myJson))
-}

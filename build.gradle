@@ -7,10 +7,21 @@ version '0.0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.6.0"
+    testImplementation 'com.beust:klaxon:5.0.1'
+    testImplementation "org.assertj:assertj-core:3.15.0"
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 compileKotlin {
