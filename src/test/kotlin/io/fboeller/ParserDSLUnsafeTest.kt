@@ -1,11 +1,16 @@
 package io.fboeller
 
+import io.fboeller.ParserDSLUnsafe.Companion.field
+import io.fboeller.ParserDSLUnsafe.Companion.fieldsOf
+import io.fboeller.ParserDSLUnsafe.Companion.maybe
+import io.fboeller.ParserDSLUnsafe.Companion.string
+import io.fboeller.ParserDSLUnsafe.Companion.listOf
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class JsonTypesTest {
+class ParserDSLUnsafeTest {
 
     data class Person(val name: String, val hobbies: List<String>)
 
@@ -17,7 +22,7 @@ class JsonTypesTest {
                 "hobbies" to JsonList(listOf(JsonPrimitive("d")))
             )
         )
-        val personOf: Parser<Person?> = obj(
+        val personOf: Parser<Person?> = ParserDSLUnsafe.obj(
             fieldsOf(::Person)(
                 field("name", maybe(string)),
                 field("hobbies", maybe(listOf(string)))
