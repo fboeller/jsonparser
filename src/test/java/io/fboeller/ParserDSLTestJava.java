@@ -1,5 +1,7 @@
 package io.fboeller;
 
+import static io.fboeller.ParserDSLKt.*;
+
 public class ParserDSLTestJava {
 
     private static class Person {
@@ -13,10 +15,10 @@ public class ParserDSLTestJava {
     }
 
     public static void main(String[] args) {
-        var personOf = ParserDSL.Companion.mapTo(
-                ParserDSL.Companion.fields(
-                        ParserDSL.Companion.mandatory(ParserDSL.Companion.field(ParserDSL.Companion.getString(), "firstName")),
-                        ParserDSL.Companion.field(ParserDSL.Companion.getString(), "lastName")
+        var personOf = mapTo(
+                fields(
+                        mandatory(field(getString(), "firstName")),
+                        field(getString(), "lastName")
                 ),
                 Person::new
         );
