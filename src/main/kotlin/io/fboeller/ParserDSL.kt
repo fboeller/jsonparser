@@ -26,7 +26,7 @@ private fun <T> string(parse: PParser<Result<T>>): Parser<Result<T>> =
     fold(fail("is not a string but an object"), fail("is not a string but a list"), parse)
 
 
-val string: Parser<Result<String>> =
+fun string(): Parser<Result<String>> =
     string { Success(it.value) }
 
 fun <T> Parser<Result<T>>.list(): Parser<Result<List<T>>> = onlylist { list ->

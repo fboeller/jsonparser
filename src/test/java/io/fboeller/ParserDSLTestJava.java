@@ -17,8 +17,8 @@ public class ParserDSLTestJava {
     public static void main(String[] args) {
         var personOf = mapTo(
                 fields(
-                        mandatory(field(getString(), "firstName")),
-                        field(getString(), "lastName")
+                        mandatory(field(string(), "firstName")),
+                        field(string(), "lastName")
                 ),
                 Person::new
         );
