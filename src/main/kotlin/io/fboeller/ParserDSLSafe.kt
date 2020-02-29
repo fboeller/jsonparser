@@ -13,7 +13,7 @@ class ParserDSLSafe {
                 }
             }
 
-        fun <T> fail(reason: String): (Json) -> Result<T> =
+        fun <T> fail(reason: String): Parser<Result<T>> =
             { Failure(listOf(reason)) }
 
         fun <T> list(parse: LParser<Result<T>>): Parser<Result<T>> =
@@ -41,7 +41,7 @@ class ParserDSLSafe {
             t1?.let { s1 -> t2?.let { s2 -> f(s1, s2) } }
         }
 
-        fun <T1, T2, R> liftFallible(f: (T1, T2) -> R): (Result<T1>, Result<T2>) -> Result<R> = { f1, f2 ->
+        fun <T1, T2, R> liftResult(f: (T1, T2) -> R): (Result<T1>, Result<T2>) -> Result<R> = { f1, f2 ->
             f1.flatMap { t1 -> f2.map { t2 -> f(t1, t2) } }
         }
 
@@ -54,7 +54,7 @@ class ParserDSLSafe {
         }
 
         fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R): (OParser<Result<T1>>, OParser<Result<T2>>) -> OParser<Result<R>> =
-            liftOParser(liftFallible(f))
+            liftOParser(liftResult(f))
 
         fun <T> OParser<Result<T?>>.mandatory(): OParser<Result<T>> = { json ->
             this(json).flatMap<T?, T> { t ->
