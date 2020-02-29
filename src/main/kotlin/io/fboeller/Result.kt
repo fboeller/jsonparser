@@ -1,25 +1,25 @@
 package io.fboeller
 
-// obj.list[3].name
 sealed class Reason
 
 data class Message(val message: String) : Reason()
 data class FieldReason(val field: String, val reason: Reason) : Reason()
 data class IndexReason(val index: Int, val reason: Reason) : Reason()
 
-fun Reason.print(): String = when (this) {
-    is Message -> " $message"
-    is FieldReason -> "." + field + reason.print()
-    is IndexReason -> "[" + index + "]" + reason.print()
-}
+fun Reason.print(): String =
+    "<root>" + this.print0()
 
-val a = FieldReason("obj", FieldReason("list", IndexReason(3, FieldReason("name", Message(" can not be null")))))
+private fun Reason.print0(): String = when (this) {
+    is Message -> " $message"
+    is FieldReason -> "." + field + reason.print0()
+    is IndexReason -> "[" + index + "]" + reason.print0()
+}
 
 sealed class Result<T>
 data class Success<T>(val t: T) : Result<T>()
 data class Failure<T>(val reasons: List<Reason>) : Result<T>()
 
-fun <T> Result<T>.reasons() = when(this) {
+fun <T> Result<T>.reasons() = when (this) {
     is Success -> emptyList()
     is Failure -> reasons
 }
@@ -49,14 +49,9 @@ fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T
 }
 
 fun <T> sequence(results: List<Result<T>>): Result<List<T>> =
-    results.foldIndexed(
+    results.fold(
         Success(listOf()),
-        { i, acc, result ->
-            merge(
-                acc,
-                result.mapFailures { IndexReason(i, it) }.map { listOf(it) }
-            )
-        }
+        { acc, result -> merge(acc, result.map { listOf(it) }) }
     )
 
 fun <T> sequenceO(result: Result<T?>): Result<T>? = when (result) {
@@ -64,9 +59,7 @@ fun <T> sequenceO(result: Result<T?>): Result<T>? = when (result) {
     is Failure -> Failure(result.reasons)
 }
 
-fun <T> sequence(maybe: Result<T>?): (String) -> Result<T?> = { name ->
-    when (maybe) {
-        null -> Success(null)
-        else -> maybe.mapFailures { FieldReason(name, it) }.map { it }
-    }
+fun <T> sequence(maybe: Result<T>?): Result<T?> = when (maybe) {
+    null -> Success(null)
+    else -> maybe.map { it }
 }

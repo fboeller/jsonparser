@@ -4,7 +4,11 @@ class ParserDSL {
 
     companion object {
 
-        private fun <T> fold(fo: OParser<Result<T>>, fl: LParser<Result<T>>, fp: PParser<Result<T>>): Parser<Result<T>> =
+        private fun <T> fold(
+            fo: OParser<Result<T>>,
+            fl: LParser<Result<T>>,
+            fp: PParser<Result<T>>
+        ): Parser<Result<T>> =
             { json ->
                 when (json) {
                     is JsonObj -> fo(json)
@@ -16,7 +20,7 @@ class ParserDSL {
         private fun <T> fail(reason: String): Parser<Result<T>> =
             { Failure(listOf(Message(reason))) }
 
-        fun <T> list(parse: LParser<Result<T>>): Parser<Result<T>> =
+        fun <T> onlylist(parse: LParser<Result<T>>): Parser<Result<T>> =
             fold(fail("is not a list but an object"), parse, fail("is not a list but a string"))
 
         fun <T> obj(parse: OParser<Result<T>>): Parser<Result<T>> =
@@ -29,11 +33,17 @@ class ParserDSL {
         val string: Parser<Result<String>> =
             string { Success(it.value) }
 
-        fun <T> listOf(parse: Parser<Result<T>>): Parser<Result<List<T>>> =
-            list { list -> sequence(list.elements.map(parse)) }
+        fun <T> Parser<Result<T>>.list(): Parser<Result<List<T>>> = onlylist { list ->
+            sequence(
+                list.elements
+                    .map(this)
+                    .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
+            )
+        }
 
         fun <T> Parser<Result<T>>.field(name: String): OParser<Result<T?>> = { json ->
-            sequence(json.fields[name]?.let(this))(name)
+            sequence(json.fields[name]?.let(this))
+                .mapFailures { FieldReason(name, it) }
         }
 
         fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R)
