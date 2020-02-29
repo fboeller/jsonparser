@@ -15,13 +15,10 @@ public class ParserDSLTestJava {
     }
 
     public static void main(String[] args) {
-        var personOf = mapTo(
-                fields(
-                        mandatory(field(string(), "firstName")),
-                        field(string(), "lastName")
-                ),
-                Person::new
-        );
+        var personOf = fields(
+                mandatory(field(string(), "firstName")),
+                field(string(), "lastName")
+        ).mapTo(Person::new);
     }
 
 }
