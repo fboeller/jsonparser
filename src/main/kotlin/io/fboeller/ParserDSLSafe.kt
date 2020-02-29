@@ -14,19 +14,19 @@ class ParserDSLSafe {
             }
 
         fun <T> fail(reason: String): Parser<Result<T>> =
-            { Failure(listOf(reason)) }
+            { Failure(listOf(Message(reason))) }
 
         fun <T> list(parse: LParser<Result<T>>): Parser<Result<T>> =
-            fold(fail("Expected list but found object!"), parse, fail("Expected list but found string!"))
+            fold(fail("is not a list but an object"), parse, fail("is not a list but a string"))
 
         fun <T> obj(parse: OParser<Result<T>>): Parser<Result<T>> =
-            fold(parse, fail("Expected object but found list!"), fail("Expected object but found string!"))
+            fold(parse, fail("is not an object but a list"), fail("is not an object but a string"))
 
         fun <T> string(parse: PParser<Result<T>>): Parser<Result<T>> =
-            fold(fail("Expected string but found object!"), fail("Expected string but found list!"), parse)
+            fold(fail("is not a string but an object"), fail("is not a string but a list"), parse)
 
         fun <T> Parser<Result<T>>.field(field: String): OParser<Result<T?>> = { json ->
-            sequence(json.fields[field]?.let(this))
+            sequence(json.fields[field]?.let(this))(field)
         }
 
 
@@ -95,7 +95,8 @@ class ParserDSLSafe {
 
         fun <T> OParser<Result<T?>>.mandatory(): OParser<Result<T>> = { json ->
             this(json).flatMap<T?, T> { t ->
-                t?.let { Success(it) } ?: Failure(listOf("Expected mandatory field but found nothing!"))
+                t?.let { Success(it) }
+                    ?: Failure(listOf(Message("is mandatory but does not exist")))
             }
         }
 

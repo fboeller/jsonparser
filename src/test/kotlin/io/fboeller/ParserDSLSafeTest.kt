@@ -60,7 +60,7 @@ class ParserDSLSafeTest {
             )
         )
         Assertions.assertThat(personOf(myJson))
-            .isEqualTo(Failure<Person>(listOf("Expected mandatory field but found nothing!")))
+            .isEqualTo(Failure<Person>(listOf(Message("is mandatory but does not exist"))))
     }
 
     @Test
@@ -71,8 +71,20 @@ class ParserDSLSafeTest {
                 "hobbies" to JsonPrimitive("d")
             )
         )
-        Assertions.assertThat(personOf(myJson))
-            .isEqualTo(Failure<Person>(listOf("Expected list but found string!")))
+        Assertions.assertThat(personOf(myJson).reasons())
+            .isEqualTo(listOf(FieldReason("hobbies", Message("is not a list but a string"))))
+    }
+
+    @Test
+    fun `Hobbies field contains element of wrong type`() {
+        val myJson: Json = JsonObj(
+            mapOf(
+                "name" to JsonPrimitive("b"),
+                "hobbies" to JsonList(listOf(JsonPrimitive("d"), JsonList(listOf(JsonPrimitive("e")))))
+            )
+        )
+        Assertions.assertThat(personOf(myJson).reasons())
+            .isEqualTo(listOf(FieldReason("hobbies", IndexReason(1, Message("is not a string but a list")))))
     }
 
 }
