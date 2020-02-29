@@ -1,6 +1,6 @@
 package io.fboeller
 
-class ParserDSLSafe {
+class ParserDSL {
 
     companion object {
 
