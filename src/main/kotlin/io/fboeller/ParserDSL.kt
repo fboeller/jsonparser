@@ -25,8 +25,8 @@ class ParserDSL {
         fun <T> string(parse: PParser<Result<T>>): Parser<Result<T>> =
             fold(fail("is not a string but an object"), fail("is not a string but a list"), parse)
 
-        fun <T> Parser<Result<T>>.field(field: String): OParser<Result<T?>> = { json ->
-            sequence(json.fields[field]?.let(this))(field)
+        fun <T> Parser<Result<T>>.field(name: String): OParser<Result<T?>> = { json ->
+            sequence(json.fields[name]?.let(this))(name)
         }
 
 
