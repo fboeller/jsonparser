@@ -17,8 +17,8 @@ class ParserDSLSafeTest {
 
     val personOf: FallibleParser<Person> = obj(
         fieldsOf(::Person)(
-            mandatory(field("name", string)),
-            mandatory(field("hobbies", listOf(string)))
+            string.field("name").mandatory(),
+            listOf(string).field("hobbies").mandatory()
         )
     )
 
