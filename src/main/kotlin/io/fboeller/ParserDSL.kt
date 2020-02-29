@@ -41,14 +41,18 @@ class ParserDSL {
             )
         }
 
+        data class Fields2<T1, T2>(val p1: OParser<Result<T1>>, val p2: OParser<Result<T2>>)
+
+        fun <T1, T2> fields(p1: OParser<Result<T1>>, p2: OParser<Result<T2>>): Fields2<T1, T2> =
+            Fields2(p1, p2)
+
+        fun <T1, T2, R> Fields2<T1, T2>.mapTo(f: ((T1, T2) -> R)): Parser<Result<R>> =
+            obj(liftOParser(liftResult(f))(p1, p2))
+
         fun <T> Parser<Result<T>>.field(name: String): OParser<Result<T?>> = { json ->
             sequence(json.fields[name]?.let(this))
                 .mapFailures { FieldReason(name, it) }
         }
-
-        fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R)
-                : (OParser<Result<T1>>, OParser<Result<T2>>) -> OParser<Result<R>> =
-            liftOParser(liftResult(f))
 
         fun <T> OParser<Result<T?>>.mandatory(): OParser<Result<T>> = { json ->
             this(json).flatMap<T?, T> { t ->

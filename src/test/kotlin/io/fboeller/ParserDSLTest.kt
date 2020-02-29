@@ -1,11 +1,11 @@
 package io.fboeller
 
-import io.fboeller.ParserDSL.Companion.fieldsOf
+import io.fboeller.ParserDSL.Companion.fields
 import io.fboeller.ParserDSL.Companion.string
 import io.fboeller.ParserDSL.Companion.list
 import io.fboeller.ParserDSL.Companion.field
 import io.fboeller.ParserDSL.Companion.mandatory
-import io.fboeller.ParserDSL.Companion.obj
+import io.fboeller.ParserDSL.Companion.mapTo
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.forAll
 import io.kotest.data.row
@@ -59,12 +59,10 @@ class ParserDSLTest : StringSpec({
         val lastName: String?
     )
 
-    val personOf = obj(
-        fieldsOf(::Person)(
-            string.field("firstName").mandatory(),
-            string.field("lastName")
-        )
-    )
+    val personOf = fields(
+        string.field("firstName").mandatory(),
+        string.field("lastName")
+    ).mapTo(::Person)
 
     "Object parser succeeds" {
         forAll(
