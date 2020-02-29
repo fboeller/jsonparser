@@ -13,17 +13,35 @@ import org.junit.jupiter.api.TestInstance
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ParserDSLSafeTest {
 
-    data class Person(val name: String, val hobbies: List<String>)
+    data class Person(
+        val name: String,
+        val surname: String?,
+        val hobbies: List<String>
+    )
 
     val personOf: Parser<Result<Person>> = obj(
         fieldsOf(::Person)(
             string.field("name").mandatory(),
+            string.field("surname"),
             listOf(string).field("hobbies").mandatory()
         )
     )
 
     @Test
-    fun `JSON structure is parsed correctly`() {
+    fun `JSON structure with all fields is parsed correctly`() {
+        val myJson: Json = JsonObj(
+            mapOf(
+                "name" to JsonPrimitive("b"),
+                "surname" to JsonPrimitive("c"),
+                "hobbies" to JsonList(listOf(JsonPrimitive("d")))
+            )
+        )
+        Assertions.assertThat(personOf(myJson))
+            .isEqualTo(Success(Person("b", "c", listOf("d"))))
+    }
+
+    @Test
+    fun `JSON structure with null field is parsed correctly`() {
         val myJson: Json = JsonObj(
             mapOf(
                 "name" to JsonPrimitive("b"),
@@ -31,7 +49,7 @@ class ParserDSLSafeTest {
             )
         )
         Assertions.assertThat(personOf(myJson))
-            .isEqualTo(Success(Person("b", listOf("d"))))
+            .isEqualTo(Success(Person("b", null, listOf("d"))))
     }
 
     @Test
