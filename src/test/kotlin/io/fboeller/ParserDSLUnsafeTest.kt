@@ -16,7 +16,7 @@ class ParserDSLUnsafeTest {
 
     @Test
     fun `JSON structure is parsed correctly`() {
-        val myJson: Json = JsonObject(
+        val myJson: Json = JsonObj(
             mapOf(
                 "name" to JsonPrimitive("b"),
                 "hobbies" to JsonList(listOf(JsonPrimitive("d")))

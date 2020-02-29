@@ -8,7 +8,7 @@ class ParserDSLUnsafe {
 
         fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> = { json ->
             when (json) {
-                is JsonObject -> fo(json)
+                is JsonObj -> fo(json)
                 is JsonList -> fl(json)
                 is JsonPrimitive -> fp(json)
             }

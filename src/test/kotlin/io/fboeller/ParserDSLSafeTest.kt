@@ -15,7 +15,7 @@ class ParserDSLSafeTest {
 
     data class Person(val name: String, val hobbies: List<String>)
 
-    val personOf: FallibleParser<Person> = obj(
+    val personOf: Parser<Result<Person>> = obj(
         fieldsOf(::Person)(
             string.field("name").mandatory(),
             listOf(string).field("hobbies").mandatory()
@@ -24,7 +24,7 @@ class ParserDSLSafeTest {
 
     @Test
     fun `JSON structure is parsed correctly`() {
-        val myJson: Json = JsonObject(
+        val myJson: Json = JsonObj(
             mapOf(
                 "name" to JsonPrimitive("b"),
                 "hobbies" to JsonList(listOf(JsonPrimitive("d")))
@@ -36,7 +36,7 @@ class ParserDSLSafeTest {
 
     @Test
     fun `Missing hobbies field is detected`() {
-        val myJson: Json = JsonObject(
+        val myJson: Json = JsonObj(
             mapOf(
                 "name" to JsonPrimitive("b")
             )
@@ -47,7 +47,7 @@ class ParserDSLSafeTest {
 
     @Test
     fun `Wrong hobbies field type is detected`() {
-        val myJson: Json = JsonObject(
+        val myJson: Json = JsonObj(
             mapOf(
                 "name" to JsonPrimitive("b"),
                 "hobbies" to JsonPrimitive("d")

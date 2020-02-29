@@ -1,44 +1,39 @@
 package io.fboeller
 
-typealias FallibleParser<T> = (Json) -> Fallible<T>
-typealias FallibleOParser<T> = (JsonObject) -> Fallible<T>
-typealias FallibleLParser<T> = (JsonList) -> Fallible<T>
-typealias FalliblePParser<T> = (JsonPrimitive) -> Fallible<T>
-
 class ParserDSLSafe {
 
     companion object {
 
-        fun <T> fold(fo: FallibleOParser<T>, fl: FallibleLParser<T>, fp: FalliblePParser<T>): FallibleParser<T> =
+        fun <T> fold(fo: OParser<Result<T>>, fl: LParser<Result<T>>, fp: PParser<Result<T>>): Parser<Result<T>> =
             { json ->
                 when (json) {
-                    is JsonObject -> fo(json)
+                    is JsonObj -> fo(json)
                     is JsonList -> fl(json)
                     is JsonPrimitive -> fp(json)
                 }
             }
 
-        fun <T> fail(reason: String): FallibleParser<T> =
+        fun <T> fail(reason: String): (Json) -> Result<T> =
             { Failure(listOf(reason)) }
 
-        fun <T> list(parse: FallibleLParser<T>): FallibleParser<T> =
+        fun <T> list(parse: LParser<Result<T>>): Parser<Result<T>> =
             fold(fail("Expected list but found object!"), parse, fail("Expected list but found string!"))
 
-        fun <T> obj(parse: FallibleOParser<T>): FallibleParser<T> =
+        fun <T> obj(parse: OParser<Result<T>>): Parser<Result<T>> =
             fold(parse, fail("Expected object but found list!"), fail("Expected object but found string!"))
 
-        fun <T> string(parse: FalliblePParser<T>): FallibleParser<T> =
+        fun <T> string(parse: PParser<Result<T>>): Parser<Result<T>> =
             fold(fail("Expected string but found object!"), fail("Expected string but found list!"), parse)
 
-        fun <T> FallibleParser<T>.field(field: String): FallibleOParser<T?> = { json ->
+        fun <T> Parser<Result<T>>.field(field: String): OParser<Result<T?>> = { json ->
             sequence(json.fields[field]?.let(this))
         }
 
 
-        val string: FallibleParser<String> =
+        val string: Parser<Result<String>> =
             string { Success(it.value) }
 
-        fun <T> listOf(parse: FallibleParser<T>): FallibleParser<List<T>> =
+        fun <T> listOf(parse: Parser<Result<T>>): Parser<Result<List<T>>> =
             list { list -> sequence(list.elements.map(parse)) }
 
 
@@ -46,7 +41,7 @@ class ParserDSLSafe {
             t1?.let { s1 -> t2?.let { s2 -> f(s1, s2) } }
         }
 
-        fun <T1, T2, R> liftFallible(f: (T1, T2) -> R): (Fallible<T1>, Fallible<T2>) -> Fallible<R> = { f1, f2 ->
+        fun <T1, T2, R> liftFallible(f: (T1, T2) -> R): (Result<T1>, Result<T2>) -> Result<R> = { f1, f2 ->
             f1.flatMap { t1 -> f2.map { t2 -> f(t1, t2) } }
         }
 
@@ -58,10 +53,10 @@ class ParserDSLSafe {
             { json -> f(p1(json), p2(json)) }
         }
 
-        fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R): (FallibleOParser<T1>, FallibleOParser<T2>) -> FallibleOParser<R> =
+        fun <T1, T2, R> fieldsOf(f: (T1, T2) -> R): (OParser<Result<T1>>, OParser<Result<T2>>) -> OParser<Result<R>> =
             liftOParser(liftFallible(f))
 
-        fun <T> FallibleOParser<T?>.mandatory(): FallibleOParser<T> = { json ->
+        fun <T> OParser<Result<T?>>.mandatory(): OParser<Result<T>> = { json ->
             this(json).flatMap<T?, T> { t ->
                 t?.let { Success(it) } ?: Failure(listOf("Expected mandatory field but found nothing!"))
             }
