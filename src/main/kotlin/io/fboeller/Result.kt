@@ -51,13 +51,13 @@ fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T
     }
 }
 
-fun <T> sequence(results: List<Result<T>>): Result<List<T>> =
-    results.fold(
+fun <T> List<Result<T>>.sequence(): Result<List<T>> =
+    this.fold(
         Success(listOf()),
         { acc, result -> merge(acc, result.map { listOf(it) }) }
     )
 
-fun <T> sequence(maybe: Result<T>?): Result<T?> = when (maybe) {
+fun <T> Result<T>?.sequence(): Result<T?> = when (this) {
     null -> Success(null)
-    else -> maybe.map { it }
+    else -> this.map { it }
 }

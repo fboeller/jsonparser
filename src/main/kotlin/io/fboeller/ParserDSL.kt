@@ -2,14 +2,16 @@ package io.fboeller
 
 data class Parser<T>(val parse: (Json) -> Result<T>) {
     fun list(): Parser<List<T>> = onlylist { list ->
-        sequence(
-            list.elements
-                .map(this.parse)
-                .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
-        )
+        list.elements
+            .map(this.parse)
+            .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
+            .sequence()
     }
+
     fun field(name: String): OParser<T?> = { json ->
-        sequence(json.fields[name]?.let(this.parse))
+        json.fields[name]
+            ?.let(this.parse)
+            .sequence()
             .mapFailures { FieldReason(name, it) }
     }
 }
