@@ -15,27 +15,30 @@ private fun Reason.print0(): String = when (this) {
     is IndexReason -> "[" + index + "]" + reason.print0()
 }
 
-sealed class Result<T>
+sealed class Result<T> {
+
+    fun reasons() = when (this) {
+        is Success -> emptyList()
+        is Failure -> reasons
+    }
+
+    fun <R> flatMap(f: (T) -> Result<R>): Result<R> = when (this) {
+        is Success -> f(t)
+        is Failure -> Failure(reasons)
+    }
+
+    fun <R> map(f: (T) -> R): Result<R> =
+        flatMap { Success(f(it)) }
+
+    fun mapFailures(f: (Reason) -> Reason): Result<T> = when (this) {
+        is Success -> this
+        is Failure -> Failure(reasons.map(f))
+    }
+
+}
+
 data class Success<T>(val t: T) : Result<T>()
 data class Failure<T>(val reasons: List<Reason>) : Result<T>()
-
-fun <T> Result<T>.reasons() = when (this) {
-    is Success -> emptyList()
-    is Failure -> reasons
-}
-
-fun <T, R> Result<T>.flatMap(f: (T) -> Result<R>): Result<R> = when (this) {
-    is Success -> f(t)
-    is Failure -> Failure(reasons)
-}
-
-fun <T, R> Result<T>.map(f: (T) -> R): Result<R> =
-    flatMap { Success(f(it)) }
-
-fun <T> Result<T>.mapFailures(f: (Reason) -> Reason): Result<T> = when (this) {
-    is Success -> this
-    is Failure -> Failure(reasons.map(f))
-}
 
 fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T>> = when (result1) {
     is Success -> when (result2) {
@@ -53,11 +56,6 @@ fun <T> sequence(results: List<Result<T>>): Result<List<T>> =
         Success(listOf()),
         { acc, result -> merge(acc, result.map { listOf(it) }) }
     )
-
-fun <T> sequenceO(result: Result<T?>): Result<T>? = when (result) {
-    is Success -> result.t?.let { Success(it) }
-    is Failure -> Failure(result.reasons)
-}
 
 fun <T> sequence(maybe: Result<T>?): Result<T?> = when (maybe) {
     null -> Success(null)
