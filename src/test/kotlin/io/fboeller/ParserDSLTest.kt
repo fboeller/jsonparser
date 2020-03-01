@@ -11,7 +11,7 @@ class ParserDSLTest : StringSpec({
         forAll(
             row(JsonPrimitive("str"), "str")
         ) { json, result ->
-            string()(json) shouldBe Success(result)
+            string().parse(json) shouldBe Success(result)
         }
     }
 
@@ -20,7 +20,7 @@ class ParserDSLTest : StringSpec({
             row(JsonList(emptyList()), listOf("<root> is not a string but a list")),
             row(JsonObj(emptyMap()), listOf("<root> is not a string but an object"))
         ) { json, result ->
-            string()(json).reasons().map { it.print() } shouldBe result
+            string().parse(json).reasons().map { it.print() } shouldBe result
         }
     }
 
@@ -30,7 +30,7 @@ class ParserDSLTest : StringSpec({
             row(JsonList(listOf(JsonPrimitive("str"))), listOf("str")),
             row(JsonList(listOf(JsonPrimitive("str1"), JsonPrimitive("str2"))), listOf("str1", "str2"))
         ) { json, result ->
-            string().list()(json) shouldBe Success(result)
+            string().list().parse(json) shouldBe Success(result)
         }
     }
 
@@ -44,7 +44,7 @@ class ParserDSLTest : StringSpec({
                 listOf("<root>[0] is not a string but a list", "<root>[2] is not a string but an object")
             )
         ) { json, result ->
-            string().list()(json).reasons().map { it.print() } shouldBe result
+            string().list().parse(json).reasons().map { it.print() } shouldBe result
         }
     }
 
@@ -53,7 +53,7 @@ class ParserDSLTest : StringSpec({
         val lastName: String?
     )
 
-    val personOf = fields(
+    val person = fields(
         string().field("firstName").mandatory(),
         string().field("lastName")
     ).mapTo(::Person)
@@ -70,7 +70,7 @@ class ParserDSLTest : StringSpec({
                 Person("Heinz", null)
             )
         ) { json, result ->
-            personOf(json) shouldBe Success(result)
+            person.parse(json) shouldBe Success(result)
         }
     }
 
@@ -81,7 +81,7 @@ class ParserDSLTest : StringSpec({
                 listOf("<root>.firstName is mandatory but does not exist")
             )
         ) { json, result ->
-            personOf(json).reasons().map { it.print() } shouldBe result
+            person.parse(json).reasons().map { it.print() } shouldBe result
         }
     }
 

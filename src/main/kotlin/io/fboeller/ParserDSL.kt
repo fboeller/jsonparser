@@ -1,11 +1,11 @@
 package io.fboeller
 
-typealias Parser<T> = (Json) -> Result<T>
+data class Parser<T>(val parse: (Json) -> Result<T>)
 typealias OParser<T> = (JsonObj) -> Result<T>
 typealias LParser<T> = (JsonList) -> Result<T>
 typealias PParser<T> = (JsonPrimitive) -> Result<T>
 
-private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> = { json ->
+private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> = Parser { json ->
     when (json) {
         is JsonObj -> fo(json)
         is JsonList -> fl(json)
@@ -14,16 +14,25 @@ private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> 
 }
 
 private fun <T> fail(reason: String): Parser<T> =
+    Parser { Failure<T>(listOf(Message(reason))) }
+
+private fun <T> failO(reason: String): OParser<T> =
+    { Failure(listOf(Message(reason))) }
+
+private fun <T> failL(reason: String): LParser<T> =
+    { Failure(listOf(Message(reason))) }
+
+private fun <T> failP(reason: String): PParser<T> =
     { Failure(listOf(Message(reason))) }
 
 private fun <T> onlylist(parse: LParser<T>): Parser<T> =
-    fold(fail("is not a list but an object"), parse, fail("is not a list but a string"))
+    fold(failO("is not a list but an object"), parse, failP("is not a list but a string"))
 
 private fun <T> obj(parse: OParser<T>): Parser<T> =
-    fold(parse, fail("is not an object but a list"), fail("is not an object but a string"))
+    fold(parse, failL("is not an object but a list"), failP("is not an object but a string"))
 
 private fun <T> string(parse: PParser<T>): Parser<T> =
-    fold(fail("is not a string but an object"), fail("is not a string but a list"), parse)
+    fold(failO("is not a string but an object"), failL("is not a string but a list"), parse)
 
 
 fun string(): Parser<String> =
@@ -32,7 +41,7 @@ fun string(): Parser<String> =
 fun <T> Parser<T>.list(): Parser<List<T>> = onlylist { list ->
     sequence(
         list.elements
-            .map(this)
+            .map(this.parse)
             .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
     )
 }
@@ -46,7 +55,7 @@ fun <T1, T2> fields(p1: OParser<T1>, p2: OParser<T2>): Fields2<T1, T2> =
     Fields2(p1, p2)
 
 fun <T> Parser<T>.field(name: String): OParser<T?> = { json ->
-    sequence(json.fields[name]?.let(this))
+    sequence(json.fields[name]?.let(this.parse))
         .mapFailures { FieldReason(name, it) }
 }
 
