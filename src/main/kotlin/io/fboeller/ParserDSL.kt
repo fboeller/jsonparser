@@ -11,8 +11,8 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
     fun field(name: String): OParser<T?> = OParser { json ->
         json.fields[name]
             ?.let(this.parse)
+            ?.mapFailures { FieldReason(name, it) }
             .sequence()
-            .mapFailures { FieldReason(name, it) }
     }
 }
 

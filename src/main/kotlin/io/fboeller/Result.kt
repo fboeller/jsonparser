@@ -27,8 +27,10 @@ sealed class Result<T> {
         is Failure -> Failure(reasons)
     }
 
-    fun <R> map(f: (T) -> R): Result<R> =
-        flatMap { Success(f(it)) }
+    fun <R> map(f: (T) -> R): Result<R> = when(this) {
+        is Success -> Success(f(t))
+        is Failure -> Failure(reasons)
+    }
 
     fun mapFailures(f: (Reason) -> Reason): Result<T> = when (this) {
         is Success -> this
@@ -62,5 +64,5 @@ fun <T> List<Result<T>>.sequence(): Result<List<T>> =
 
 fun <T> Result<T>?.sequence(): Result<T?> = when (this) {
     null -> Success(null)
-    else -> this.map { it }
+    else -> map { it }
 }
