@@ -1,12 +1,12 @@
 package io.fboeller
 
 data class Parser<T>(val parse: (Json) -> Result<T>) {
-    fun list(): Parser<List<T>> = onlylist(LParser { list ->
+    fun list(): Parser<List<T>> = LParser { list ->
         list.elements
             .map(this.parse)
             .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
             .sequence()
-    })
+    }.onlylist()
 
     fun field(name: String): OParser<T?> = OParser { json ->
         json.fields[name]
@@ -16,9 +16,20 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
     }
 }
 
-data class OParser<T>(val parse: (JsonObj) -> Result<T>)
-data class LParser<T>(val parse: (JsonList) -> Result<T>)
-data class PParser<T>(val parse: (JsonPrimitive) -> Result<T>)
+data class OParser<T>(val parse: (JsonObj) -> Result<T>) {
+    fun obj(): Parser<T> =
+        fold(this, failL("is not an object but a list"), failP("is not an object but a string"))
+}
+
+data class LParser<T>(val parse: (JsonList) -> Result<T>) {
+    fun onlylist(): Parser<T> =
+        fold(failO("is not a list but an object"), this, failP("is not a list but a string"))
+}
+
+data class PParser<T>(val parse: (JsonPrimitive) -> Result<T>) {
+    fun string(): Parser<T> =
+        fold(failO("is not a string but an object"), failL("is not a string but a list"), this)
+}
 
 private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> = Parser { json ->
     when (json) {
@@ -37,22 +48,13 @@ private fun <T> failL(reason: String): LParser<T> =
 private fun <T> failP(reason: String): PParser<T> =
     PParser { Failure<T>(listOf(Message(reason))) }
 
-private fun <T> onlylist(parse: LParser<T>): Parser<T> =
-    fold(failO("is not a list but an object"), parse, failP("is not a list but a string"))
-
-private fun <T> obj(parse: OParser<T>): Parser<T> =
-    fold(parse, failL("is not an object but a list"), failP("is not an object but a string"))
-
-private fun <T> string(parse: PParser<T>): Parser<T> =
-    fold(failO("is not a string but an object"), failL("is not a string but a list"), parse)
-
 
 fun string(): Parser<String> =
-    string (PParser { Success(it.value) })
+    PParser { Success(it.value) }.string()
 
 data class Fields2<T1, T2>(val p1: OParser<T1>, val p2: OParser<T2>) {
     fun <R> mapTo(f: ((T1, T2) -> R)): Parser<R> =
-        obj(liftOParser(f)(p1, p2))
+        liftOParser(f)(p1, p2).obj()
 }
 
 fun <T1, T2> fields(p1: OParser<T1>, p2: OParser<T2>): Fields2<T1, T2> =
