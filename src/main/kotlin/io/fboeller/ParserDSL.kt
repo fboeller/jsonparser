@@ -1,6 +1,19 @@
 package io.fboeller
 
-data class Parser<T>(val parse: (Json) -> Result<T>)
+data class Parser<T>(val parse: (Json) -> Result<T>) {
+    fun list(): Parser<List<T>> = onlylist { list ->
+        sequence(
+            list.elements
+                .map(this.parse)
+                .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
+        )
+    }
+    fun field(name: String): OParser<T?> = { json ->
+        sequence(json.fields[name]?.let(this.parse))
+            .mapFailures { FieldReason(name, it) }
+    }
+}
+
 typealias OParser<T> = (JsonObj) -> Result<T>
 typealias LParser<T> = (JsonList) -> Result<T>
 typealias PParser<T> = (JsonPrimitive) -> Result<T>
@@ -12,9 +25,6 @@ private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> 
         is JsonPrimitive -> fp(json)
     }
 }
-
-private fun <T> fail(reason: String): Parser<T> =
-    Parser { Failure<T>(listOf(Message(reason))) }
 
 private fun <T> failO(reason: String): OParser<T> =
     { Failure(listOf(Message(reason))) }
@@ -38,14 +48,6 @@ private fun <T> string(parse: PParser<T>): Parser<T> =
 fun string(): Parser<String> =
     string { Success(it.value) }
 
-fun <T> Parser<T>.list(): Parser<List<T>> = onlylist { list ->
-    sequence(
-        list.elements
-            .map(this.parse)
-            .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
-    )
-}
-
 data class Fields2<T1, T2>(val p1: OParser<T1>, val p2: OParser<T2>) {
     fun <R> mapTo(f: ((T1, T2) -> R)): Parser<R> =
         obj(liftOParser(f)(p1, p2))
@@ -53,11 +55,6 @@ data class Fields2<T1, T2>(val p1: OParser<T1>, val p2: OParser<T2>) {
 
 fun <T1, T2> fields(p1: OParser<T1>, p2: OParser<T2>): Fields2<T1, T2> =
     Fields2(p1, p2)
-
-fun <T> Parser<T>.field(name: String): OParser<T?> = { json ->
-    sequence(json.fields[name]?.let(this.parse))
-        .mapFailures { FieldReason(name, it) }
-}
 
 fun <T> OParser<T?>.mandatory(): OParser<T> = { json ->
     this(json).flatMap<T?, T> { t ->
