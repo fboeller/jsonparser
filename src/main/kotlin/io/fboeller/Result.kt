@@ -40,6 +40,9 @@ sealed class Result<T> {
 data class Success<T>(val t: T) : Result<T>()
 data class Failure<T>(val reasons: List<Reason>) : Result<T>()
 
+fun <T> failure(reason: String) =
+    Failure<T>(listOf(Message(reason)))
+
 fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T>> = when (result1) {
     is Success -> when (result2) {
         is Success -> Success(result1.t.union(result2.t).toList())

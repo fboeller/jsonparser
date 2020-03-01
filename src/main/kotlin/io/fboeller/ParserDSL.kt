@@ -6,7 +6,7 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
             .map(this.parse)
             .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
             .sequence()
-    }.onlylist()
+    }.list()
 
     fun field(name: String): OParser<T?> = OParser { json ->
         json.fields[name]
@@ -17,36 +17,34 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
 }
 
 data class OParser<T>(val parse: (JsonObj) -> Result<T>) {
-    fun obj(): Parser<T> =
-        fold(this, failL("is not an object but a list"), failP("is not an object but a string"))
-}
-
-data class LParser<T>(val parse: (JsonList) -> Result<T>) {
-    fun onlylist(): Parser<T> =
-        fold(failO("is not a list but an object"), this, failP("is not a list but a string"))
-}
-
-data class PParser<T>(val parse: (JsonPrimitive) -> Result<T>) {
-    fun string(): Parser<T> =
-        fold(failO("is not a string but an object"), failL("is not a string but a list"), this)
-}
-
-private fun <T> fold(fo: OParser<T>, fl: LParser<T>, fp: PParser<T>): Parser<T> = Parser { json ->
-    when (json) {
-        is JsonObj -> fo.parse(json)
-        is JsonList -> fl.parse(json)
-        is JsonPrimitive -> fp.parse(json)
+    fun obj(): Parser<T> = Parser { json ->
+        when (json) {
+            is JsonObj -> parse(json)
+            is JsonList -> failure("is not an object but a list")
+            is JsonPrimitive -> failure("is not an object but a string")
+        }
     }
 }
 
-private fun <T> failO(reason: String): OParser<T> =
-    OParser { Failure<T>(listOf(Message(reason))) }
+data class LParser<T>(val parse: (JsonList) -> Result<T>) {
+    fun list(): Parser<T> = Parser { json ->
+        when (json) {
+            is JsonObj -> failure("is not a list but an object")
+            is JsonList -> parse(json)
+            is JsonPrimitive -> failure("is not a list but a string")
+        }
+    }
+}
 
-private fun <T> failL(reason: String): LParser<T> =
-    LParser { Failure<T>(listOf(Message(reason))) }
-
-private fun <T> failP(reason: String): PParser<T> =
-    PParser { Failure<T>(listOf(Message(reason))) }
+data class PParser<T>(val parse: (JsonPrimitive) -> Result<T>) {
+    fun string(): Parser<T> = Parser { json ->
+        when (json) {
+            is JsonObj -> failure("is not a string but an object")
+            is JsonList -> failure("is not a string but a list")
+            is JsonPrimitive -> parse(json)
+        }
+    }
+}
 
 
 fun string(): Parser<String> =
