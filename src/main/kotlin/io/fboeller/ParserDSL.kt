@@ -61,7 +61,7 @@ fun <T1, T2> fields(p1: OParser<T1>, p2: OParser<T2>): Fields2<T1, T2> =
 fun <T> OParser<T?>.mandatory(): OParser<T> = OParser { json ->
     this.parse(json).flatMap { t ->
         t?.let { Success(it) }
-            ?: failure<T>("is mandatory but does not exist")
+            ?: failure("is mandatory but does not exist")
     }
 }
 

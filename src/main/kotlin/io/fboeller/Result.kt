@@ -15,7 +15,7 @@ private fun Reason.print0(): String = when (this) {
     is IndexReason -> "[" + index + "]" + reason.print0()
 }
 
-sealed class Result<T> {
+sealed class Result<out T> {
 
     fun reasons() = when (this) {
         is Success -> emptyList()
@@ -24,12 +24,12 @@ sealed class Result<T> {
 
     fun <R> flatMap(f: (T) -> Result<R>): Result<R> = when (this) {
         is Success -> f(t)
-        is Failure -> Failure(reasons)
+        is Failure -> this
     }
 
     fun <R> map(f: (T) -> R): Result<R> = when(this) {
         is Success -> Success(f(t))
-        is Failure -> Failure(reasons)
+        is Failure -> this
     }
 
     fun mapFailures(f: (Reason) -> Reason): Result<T> = when (this) {
@@ -40,10 +40,10 @@ sealed class Result<T> {
 }
 
 data class Success<T>(val t: T) : Result<T>()
-data class Failure<T>(val reasons: List<Reason>) : Result<T>()
+data class Failure(val reasons: List<Reason>) : Result<Nothing>()
 
-fun <T> failure(reason: String) =
-    Failure<T>(listOf(Message(reason)))
+fun failure(reason: String) =
+    Failure(listOf(Message(reason)))
 
 fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T>> = when (result1) {
     is Success -> when (result2) {
