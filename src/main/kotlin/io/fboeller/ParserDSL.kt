@@ -14,6 +14,10 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
             .sequence()
             .at(Field(name))
     }
+
+    fun filter(p: (T) -> Boolean, message: String?): Parser<T?> = Parser { json ->
+        parse(json).filter(p, message)
+    }
 }
 
 data class OParser<T>(val parse: (JsonObj) -> Result<T>) {

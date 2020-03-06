@@ -85,4 +85,22 @@ class ParserDSLTest : StringSpec({
         }
     }
 
+    "filter() succeeds" {
+        forAll(
+            row(string().filter({ true }, null)),
+            row(string().filter({ true }, "does not match"))
+        ) { parser ->
+            parser.parse(JsonPrimitive("str")) shouldBe Success(emptyList(), "str")
+        }
+    }
+
+    "filter() parser fails" {
+        forAll(
+            row(string().filter({ false }, null), listOf("<root> does not meet the criteria")),
+            row(string().filter({ false }, "does not match"), listOf("<root> does not match"))
+        ) { parser, result ->
+            parser.parse(JsonPrimitive("str")).reasons().map { it.print() } shouldBe result
+        }
+    }
+
 })

@@ -39,10 +39,10 @@ sealed class Result<out T> {
         is Failure -> this
     }
 
-    fun filter(p: (T) -> Boolean, message: String): Result<T> = when (this) {
+    fun filter(p: (T) -> Boolean, message: String?): Result<T?> = when (this) {
         is Success -> when (p(t)) {
             true -> this
-            false -> Failure(listOf(reason(message).at(path)))
+            false -> Failure(listOf(reason(message ?: "does not meet the criteria").at(path)))
         }
         is Failure -> this
     }
