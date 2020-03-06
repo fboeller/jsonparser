@@ -11,7 +11,7 @@ class ParserDSLTest : StringSpec({
         forAll(
             row(JsonPrimitive("str"), "str")
         ) { json, result ->
-            string().parse(json) shouldBe Success(result)
+            string().parse(json) shouldBe Success(emptyList(), result)
         }
     }
 
@@ -30,7 +30,7 @@ class ParserDSLTest : StringSpec({
             row(JsonList(listOf(JsonPrimitive("str"))), listOf("str")),
             row(JsonList(listOf(JsonPrimitive("str1"), JsonPrimitive("str2"))), listOf("str1", "str2"))
         ) { json, result ->
-            string().list().parse(json) shouldBe Success(result)
+            string().list().parse(json) shouldBe Success(emptyList(), result)
         }
     }
 
@@ -70,7 +70,7 @@ class ParserDSLTest : StringSpec({
                 Person("Heinz", null)
             )
         ) { json, result ->
-            person.parse(json) shouldBe Success(result)
+            person.parse(json) shouldBe Success(emptyList(), result)
         }
     }
 

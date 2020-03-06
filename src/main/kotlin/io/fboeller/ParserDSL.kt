@@ -4,15 +4,15 @@ data class Parser<T>(val parse: (Json) -> Result<T>) {
     fun list(): Parser<List<T>> = LParser { list ->
         list.elements
             .map(this.parse)
-            .mapIndexed { i, result -> result.mapFailures { IndexReason(i, it) } }
+            .mapIndexed { i, result -> result.at(Index(i)) }
             .sequence()
     }.list()
 
     fun field(name: String): OParser<T?> = OParser { json ->
         json.fields[name]
-            ?.let(this.parse)
-            ?.mapFailures { FieldReason(name, it) }
+            ?.let(parse)
             .sequence()
+            .at(Field(name))
     }
 }
 
@@ -48,7 +48,7 @@ data class PParser<T>(val parse: (JsonPrimitive) -> Result<T>) {
 
 
 fun string(): Parser<String> =
-    PParser { Success(it.value) }.string()
+    PParser { Success(emptyList(), it.value) }.string()
 
 data class Fields2<T1, T2>(val p1: OParser<T1>, val p2: OParser<T2>) {
     fun <R> mapTo(f: ((T1, T2) -> R)): Parser<R> =
@@ -59,8 +59,9 @@ fun <T1, T2> fields(p1: OParser<T1>, p2: OParser<T2>): Fields2<T1, T2> =
     Fields2(p1, p2)
 
 fun <T> OParser<T?>.mandatory(): OParser<T> = OParser { json ->
-    this.parse(json).flatMap { t ->
-        t?.let { Success(it) }
+    this.parse(json)
+        .flatMap { t ->
+        t?.let { Success(emptyList(), it) }
             ?: failure("is mandatory but does not exist")
     }
 }
@@ -70,7 +71,7 @@ private fun <T1, T2, R> liftResult(f: (T1, T2) -> R): (Result<T1>, Result<T2>) -
     { result1, result2 ->
         when (result1) {
             is Success -> when (result2) {
-                is Success -> Success(f(result1.t, result2.t))
+                is Success -> Success(emptyList(), f(result1.t, result2.t))
                 is Failure -> Failure(result2.reasons)
             }
             is Failure -> when (result2) {
