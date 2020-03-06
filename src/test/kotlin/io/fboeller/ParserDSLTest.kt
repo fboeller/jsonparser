@@ -1,5 +1,6 @@
 package io.fboeller
 
+import com.fasterxml.jackson.core.JsonFactory
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.data.forAll
 import io.kotest.data.row
@@ -9,42 +10,42 @@ class ParserDSLTest : StringSpec({
 
     "String parser succeeds" {
         forAll(
-            row(JsonPrimitive("str"), "str")
+            row("\"str\"", "str")
         ) { json, result ->
-            string().parse(json) shouldBe Success(emptyList(), result)
+            string().parse(JsonFactory().createParser(json)) shouldBe Success(emptyList(), result)
         }
     }
 
     "String parser fails" {
         forAll(
-            row(JsonList(emptyList()), listOf("<root> is not a string but a list")),
-            row(JsonObj(emptyMap()), listOf("<root> is not a string but an object"))
+            row("[]", listOf("<root> is not a string but a list")),
+            row("{}", listOf("<root> is not a string but an object"))
         ) { json, result ->
-            string().parse(json).reasons().map { it.print() } shouldBe result
+            string().parse(JsonFactory().createParser(json))?.reasons()?.map { it.print() } shouldBe result
         }
     }
 
     "List parser succeeds" {
         forAll(
-            row(JsonList(emptyList()), emptyList()),
-            row(JsonList(listOf(JsonPrimitive("str"))), listOf("str")),
-            row(JsonList(listOf(JsonPrimitive("str1"), JsonPrimitive("str2"))), listOf("str1", "str2"))
+            row("[]", emptyList()),
+            row("[\"str\"]", listOf("str")),
+            row("[\"str1\", \"str2\"]", listOf("str1", "str2"))
         ) { json, result ->
-            string().list().parse(json) shouldBe Success(emptyList(), result)
+            string().list().parse(JsonFactory().createParser(json))?.map { it.toList() } shouldBe Success(emptyList(), result)
         }
     }
 
     "List parser fails" {
         forAll(
-            row(JsonPrimitive("str"), listOf("<root> is not a list but a string")),
-            row(JsonList(listOf(JsonList(emptyList()))), listOf("<root>[0] is not a string but a list")),
-            row(JsonList(listOf(JsonObj(emptyMap()))), listOf("<root>[0] is not a string but an object")),
+            row("\"str\"", listOf("<root> is not a list but a string")),
+            row("[[]]", listOf("<root>[0] is not a string but a list")),
+            row("[{}]", listOf("<root>[0] is not a string but an object")),
             row(
-                JsonList(listOf(JsonList(emptyList()), JsonPrimitive("str"), JsonObj(emptyMap()))),
+                "[[], \"str\", {}]",
                 listOf("<root>[0] is not a string but a list", "<root>[2] is not a string but an object")
             )
         ) { json, result ->
-            string().list().parse(json).reasons().map { it.print() } shouldBe result
+            string().list().parse(JsonFactory().createParser(json))?.reasons()?.map { it.print() } shouldBe result
         }
     }
 
@@ -60,28 +61,19 @@ class ParserDSLTest : StringSpec({
 
     "Object parser succeeds" {
         forAll(
-            row(JsonObj(mapOf("firstName" to JsonPrimitive("Heinz"))), Person("Heinz", null)),
-            row(
-                JsonObj(mapOf("firstName" to JsonPrimitive("Heinz"), "lastName" to JsonPrimitive("Schmidt"))),
-                Person("Heinz", "Schmidt")
-            ),
-            row(
-                JsonObj(mapOf("firstName" to JsonPrimitive("Heinz"), "otherField" to JsonPrimitive("Schmidt"))),
-                Person("Heinz", null)
-            )
+            row("{\"firstName\": \"Heinz\"}", Person("Heinz", null)),
+            row("{\"firstName\": \"Heinz\", \"lastName\": \"Schmidt\"}", Person("Heinz", "Schmidt")),
+            row("{\"firstName\": \"Heinz\", \"otherField\": \"Schmidt\"}", Person("Heinz", null))
         ) { json, result ->
-            person.parse(json) shouldBe Success(emptyList(), result)
+            person.parse(JsonFactory().createParser(json)) shouldBe Success(emptyList(), result)
         }
     }
 
     "Object parser fails" {
         forAll(
-            row(
-                JsonObj(mapOf("lastName" to JsonPrimitive("Schmidt"))),
-                listOf("<root>.firstName is mandatory but does not exist")
-            )
+            row("{\"lastName\": \"Schmidt\"}", listOf("<root>.firstName is mandatory but does not exist"))
         ) { json, result ->
-            person.parse(json).reasons().map { it.print() } shouldBe result
+            person.parse(JsonFactory().createParser(json))?.reasons()?.map { it.print() } shouldBe result
         }
     }
 
@@ -90,7 +82,7 @@ class ParserDSLTest : StringSpec({
             row(string().filter({ true }, null)),
             row(string().filter({ true }, "does not match"))
         ) { parser ->
-            parser.parse(JsonPrimitive("str")) shouldBe Success(emptyList(), "str")
+            parser.parse(JsonFactory().createParser("\"str\"")) shouldBe Success(emptyList(), "str")
         }
     }
 
@@ -99,7 +91,7 @@ class ParserDSLTest : StringSpec({
             row(string().filter({ false }, null), listOf("<root> does not meet the criteria")),
             row(string().filter({ false }, "does not match"), listOf("<root> does not match"))
         ) { parser, result ->
-            parser.parse(JsonPrimitive("str")).reasons().map { it.print() } shouldBe result
+            parser.parse(JsonFactory().createParser("\"str\""))?.reasons()?.map { it.print() } shouldBe result
         }
     }
 

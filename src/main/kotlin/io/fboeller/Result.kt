@@ -67,7 +67,7 @@ data class Failure(val reasons: List<Reason>) : Result<Nothing>()
 fun failure(message: String) =
     Failure(listOf(reason(message)))
 
-fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T>> = when (result1) {
+fun <T> merge(result1: Result<Sequence<T>>, result2: Result<Sequence<T>>): Result<Sequence<T>> = when (result1) {
     is Success -> when (result2) {
         is Success -> Success(emptyList(), result1.t.plus(result2.t))
         is Failure -> Failure(result2.reasons)
@@ -78,10 +78,10 @@ fun <T> merge(result1: Result<List<T>>, result2: Result<List<T>>): Result<List<T
     }
 }
 
-fun <T> List<Result<T>>.sequence(): Result<List<T>> =
+fun <T> Sequence<Result<T>>.sequence(): Result<Sequence<T>> =
     this.fold(
-        Success(emptyList(), emptyList()),
-        { acc, result -> merge(acc, result.map { listOf(it) }) }
+        Success(emptyList(), emptySequence()),
+        { acc, result -> merge(acc, result.map { sequenceOf(it) }) }
     )
 
 fun <T> Result<T>?.sequence(): Result<T?> = when (this) {
